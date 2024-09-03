@@ -198,17 +198,19 @@ end
     fwd = bimap_fwd(h)
     rev = bimap_rev(h)
     @inbounds y = A[i] # replaced value
-    @inbounds fi = fwd[i] #! perhaps not needed if do every swap
-    @inbounds ri = rev[i] #! perhaps not needed if do every swap
+    # @inbounds fi = fwd[i] #! perhaps not needed if do every swap
+    # @inbounds ri = rev[i] #! perhaps not needed if do every swap
     o = ordering(h)
     if lt(o, y, x)
         # Heap structure _above_ replaced entry will remain valid, down-heapify
         # to fix the heap structure at and _below_ the entry.
-        unsafe_heapify_down!(o, A, fwd, rev, i, x, fi, ri, length(h))
+        # unsafe_heapify_down!(o, A, fwd, rev, i, x, fi, ri, length(h))
+        unsafe_heapify_down!(o, A, fwd, rev, i, x, length(h))
     else
         # Heap structure _below_ replaced entry will remain valid, up-heapify
         # to fix the heap structure at and _above_ the entry.
-        unsafe_heapify_up!(o, A, fwd, rev, i, x, fi, ri)
+        # unsafe_heapify_up!(o, A, fwd, rev, i, x, fi, ri)
+        unsafe_heapify_up!(o, A, fwd, rev, i, x)
     end
     return h
 end
@@ -231,13 +233,14 @@ function pop!(h::AbstractBinaryBimapHeap)
     fwd = bimap_fwd(h)
     rev = bimap_rev(h)
     @inbounds x = A[1]
-    @inbounds fi = fwd[1]
-    @inbounds ri = rev[1]
+    # @inbounds fi = fwd[1]
+    # @inbounds ri = rev[1]
     if n > 1
         # Peek the last value and down-heapify starting at the root of the
         # binary heap to insert it.
         @inbounds y = A[n]
-        unsafe_heapify_down!(ordering(h), A, fwd, rev, 1, y, fi, ri, n - 1)
+        # unsafe_heapify_down!(ordering(h), A, fwd, rev, 1, y, fi, ri, n - 1)
+        unsafe_heapify_down!(ordering(h), A, fwd, rev, 1, y, n - 1)
     end
     unsafe_shrink!(h, n - 1)
     return x
@@ -268,9 +271,10 @@ function setroot!(h::AbstractBinaryBimapHeap{T}, x::T) where {T}
     n ≥ 1 || throw_argument_error(typename(h), " is empty")
     fwd = bimap_fwd(h)
     rev = bimap_rev(h)
-    @inbounds fi = fwd[1]
-    @inbounds ri = rev[1]
-    unsafe_heapify_down!(ordering(h), storage(h), bimap_fwd(h), bimap_rev(h), 1, x, fi, ri, n)
+    # @inbounds fi = fwd[1]
+    # @inbounds ri = rev[1]
+    # unsafe_heapify_down!(ordering(h), storage(h), bimap_fwd(h), bimap_rev(h), 1, x, fi, ri, n)
+    unsafe_heapify_down!(ordering(h), storage(h), bimap_fwd(h), bimap_rev(h), 1, x, n)
     return h
 end
 
@@ -288,16 +292,18 @@ function delete!(h::AbstractBinaryBimapHeap, i::Int)
         o = ordering(h)
         @inbounds x = A[n] # value to replace deleted value
         @inbounds y = A[i] # deleted value
-        @inbounds fi = fwd[1]
-        @inbounds ri = rev[1]
+        # @inbounds fi = fwd[1]
+        # @inbounds ri = rev[1]
         if lt(o, y, x)
             # Heap structure _above_ deleted entry will remain valid,
             # down-heapify to fix the heap structure at and _below_ the entry.
-            unsafe_heapify_down!(o, A, fwd, rev, i, x, fi, ri, n - 1)
+            # unsafe_heapify_down!(o, A, fwd, rev, i, x, fi, ri, n - 1)
+            unsafe_heapify_down!(o, A, fwd, rev, i, x, n - 1)
         else
             # Heap structure _below_ deleted entry will remain valid,
             # up-heapify to fix the heap structure at and _above_ the entry.
-            unsafe_heapify_up!(o, A, fwd, rev, i, x, fi, ri)
+            # unsafe_heapify_up!(o, A, fwd, rev, i, x, fi, ri)
+            unsafe_heapify_up!(o, A, fwd, rev, i, x)
         end
     end
     unsafe_shrink!(h, n - 1)
@@ -366,7 +372,8 @@ function heapify!(o::Ordering, A::AbstractArray, fwd::AbstractArray, rev::Abstra
     # Heapify the n first elements of A.
     check_heap_storage(A, n)
     @inbounds for i in heap_parent(n):-1:1
-        unsafe_heapify_down!(o, A, fwd, rev, i, A[i], fwd[i], rev[i], n)
+        # unsafe_heapify_down!(o, A, fwd, rev, i, A[i], fwd[i], rev[i], n)
+        unsafe_heapify_down!(o, A, fwd, rev, i, A[i], n)
     end
     return A
 end
@@ -474,8 +481,10 @@ and `1 ≤ i ≤ n`.
                                       rev::AbstractArray{Int},
                                       i::Int,
                                       x::T = (@inbounds A[i]),
-                                      fi::Int = (@inbounds fwd[i]),
-                                      ri::Int = (@inbounds rev[i]),
+                                    #   ri::Int = (@inbounds rev[i]),
+                                    #   rj::Int = (@inbounds rev[i]),
+                                    #   fri::Int = (@inbounds fwd[ri]),
+                                    #   frj::Int = (@inbounds fwd[ri]),
                                       n::Int = length(A)) where {T}
     @inbounds begin
         while (l = heap_left(i)) ≤ n
@@ -483,26 +492,25 @@ and `1 ≤ i ≤ n`.
             lt(o, A[j], x) || break
             A[i] = A[j]
             # Update fwd and rev for the moved element
-            println("DOWN")
-            println("ri = $ri")
-            println("fi = $fi")
-            println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
-            println("(rev[i], rev[j]) = $((rev[i], rev[j]))\n")
+            # println("DOWN")
+            # println("(A[i], A[j]) = $((A[i], A[j]))")
+            # println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
+            # println("(rev[i], rev[j]) = $((rev[i], rev[j]))")
             #* add an `if` for updating fwd or rev
-            fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
-            rev[i], rev[j] = rev[j], rev[i]# swap rev
-            # fwd[rev[j]] = i
-            # rev[i] = rev[j]
+            #* parallelize these two block operations?
+            ri = rev[i]
+            fri = fwd[ri]
+            rj = rev[j]
+            frj = fwd[rj]
+            fwd[ri], fwd[rj] = frj, fri# swap fwd #! see LoopVectorization improvement?
+            rev[i], rev[j] = rj, ri# swap rev #! see LoopVectorization improvement?
+            # fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
+            # rev[i], rev[j] = rev[j], rev[i]# swap rev
             i = j
         end
+        # println("..last..")
+        # println("(A[j], x) = $((A[i], x))\n")
         A[i] = x
-        println("..final..")
-        println("fwd[fi] = i: $(fwd[fi]) ← $i")
-        println("rev[i] = ri: $(rev[i]) ← $ri")
-        # fwd[fi] = i
-        # rev[i] = ri
-        println("fwd[fi]: $(fwd[fi])")
-        println("rev[i]: $(rev[i])\n")
     end
 end
 
@@ -540,32 +548,34 @@ linear indexing and `1 ≤ i ≤ length(A)`.
                                     rev::AbstractArray{Int},
                                     i::Int,
                                     x::T = (@inbounds A[i]),
-                                    fi::Int = (@inbounds fwd[i]),
-                                    ri::Int = (@inbounds rev[i]),  
+                                    #   ri::Int = (@inbounds rev[i]),
+                                    #   rj::Int = (@inbounds rev[i]),
+                                    #   fri::Int = (@inbounds fwd[ri]),
+                                    #   frj::Int = (@inbounds fwd[ri]),
                                     ) where {T}
     @inbounds begin
         while (j = heap_parent(i)) ≥ 1 && lt(o, x, A[j])
             A[i] = A[j]
             # Update fwd and rev for the moved element
-            println("UP")
-            println("ri = $ri")
-            println("fi = $fi")
-            println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
-            println("(rev[i], rev[j]) = $((rev[i], rev[j]))")
-            fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
-            rev[i], rev[j] = rev[j], rev[i]# swap rev
-            # fwd[rev[j]] = i
-            # rev[i] = rev[j]
+            # println("UP")
+            # println("(A[i], A[j]) = $((A[i], A[j]))")
+            # println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
+            # println("(rev[i], rev[j]) = $((rev[i], rev[j]))")
+            #* add an `if` for updating fwd or rev
+            #* parallelize these two block operations?
+            ri = rev[i]
+            fri = fwd[ri]
+            rj = rev[j]
+            frj = fwd[rj]
+            fwd[ri], fwd[rj] = frj, fri# swap fwd #! see LoopVectorization improvement?
+            rev[i], rev[j] = rj, ri# swap rev #! see LoopVectorization improvement?
+            # fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
+            # rev[i], rev[j] = rev[j], rev[i]# swap rev
             i = j
         end
+        # println("..last..")
+        # println("(A[j], x) = $((A[i], x))\n")
         A[i] = x
-        println("..final..")
-        # println("fwd[fi] = i: $(fwd[fi]) ← $i")
-        # println("rev[i] = ri: $(rev[i]) ← $ri")
-        # # fwd[fi] = i
-        # # rev[i] = ri
-        # println("fwd[fi]: $(fwd[fi])")
-        # println("rev[i]: $(rev[i])")
     end
 end
 

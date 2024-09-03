@@ -13,7 +13,8 @@ using QuickHeaps:
     ordering, storage
 
 using QuickHeaps
-v = [1.1,1.5,1.3,1.6,1.0,0.5,1.9,1.8,1.2,2.1]
+# v = [1.1,1.5,1.3,1.6,1.0,0.5,1.9,1.8,1.2,2.1]
+v = [1.1,1.5,1.3,1.6,1.9]
 n = length(v)
 fwd = collect(1:n)
 rev = collect(1:n)
@@ -32,26 +33,61 @@ for i in eachindex(v0)
   @assert(h.data[i] == v0[h.rev[i]])
 end
 
-
-using Random
-Random.seed!(12345)
-n = 20_000
+begin "n=20 test"
+using Random, QuickHeaps, Test
+Random.seed!(123456)
+# n = 10_000_000
+n = 20
 v = randn(n)
 fwd = collect(1:n)
 rev = collect(1:n)
 v0 = copy(v)
+v1 = copy(v)
 fwd0 = copy(fwd)
 rev0 = copy(rev)
 h = QuickHeaps.FastBinaryBimapHeap(FastReverse, v, fwd, rev, n)
-heapify!(h)
+@time heapify!(h);
 hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v0], h.rev, [findfirst(x .== v0) for x in h.data])
 for i in eachindex(v0)
   if !(v0[i] == h.data[h.fwd[i]]) || !(h.data[i] == v0[h.rev[i]])
     println(i)
   end
-  @assert(v0[i] == h.data[h.fwd[i]])
-  @assert(h.data[i] == v0[h.rev[i]])
+  @test(v0[i] == h.data[h.fwd[i]])
+  @test(h.data[i] == v0[h.rev[i]])
 end
+orig_idx = [1,5,9]
+orig_val = v0[orig_idx]
+# val = round.(10randn(3), digits=0)
+val = round.(-10rand(3), digits=0)
+@assert(prod(orig_val .== h.data[h.fwd[orig_idx]]))
+@time for (ii,i) in enumerate(orig_idx) # h.data[h.fwd[orig_idx]] .= val
+    # println("ii=$ii")
+    # println("i=$i")
+    v1[i] = val[ii]
+end
+@time for (ii,i) in enumerate(orig_idx) # h.data[h.fwd[orig_idx]] .= val
+    # println("ii=$ii")
+    # println("i=$i")
+    h[h.fwd[i]] = val[ii]
+end
+check = hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v1], h.rev, [findfirst(x .== v1) for x in h.data])
+@test prod(check[:,2].==check[:,3])
+@test prod(check[:,4].==check[:,5])
+end # n=20
+
+#=
+h1 = QuickHeaps.FastBinaryBimapHeap(FastReverse, copy(v1), collect(1:n), collect(1:n), n)
+heapify!(h1)
+for (ii,i) in enumerate(orig_idx[1])
+    # v1[h.rev[i]] = val[ii] #! issue?
+    # h[i] = val[ii] #! issue?
+    v1[h.fwd[i]] = val[ii]
+    h[i] = val[ii]
+end
+check = hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v1], h.rev, [findfirst(x .== v1) for x in h.data])
+@test prod(check[:,2].==check[:,3])
+@test prod(check[:,4].==check[:,5])
+=#
 
 #=
 orientation(::Any) = 0
