@@ -28,6 +28,7 @@ export
     FastForward, FastReverse,
     FastMin, FastMax, SafeMin, SafeMax,
     AbstractBinaryHeap, BinaryHeap, FastBinaryHeap,
+    AbstractBinaryBimapHeap, BinaryBimapHeap, FastBinaryBimapHeap,
     AbstractPriorityQueue, PriorityQueue, FastPriorityQueue,
     heapify, heapify!, isheap,
     setroot!,
@@ -126,6 +127,7 @@ default_ordering(::Type) = Forward
 
 include("utilities.jl")
 include("binaryheaps.jl")
+include("binarybimapheaps.jl")
 include("nodes.jl")
 include("priorityqueues.jl")
 
