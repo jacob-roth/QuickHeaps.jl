@@ -198,8 +198,8 @@ end
     fwd = bimap_fwd(h)
     rev = bimap_rev(h)
     @inbounds y = A[i] # replaced value
-    @inbounds fi = fwd[i]
-    @inbounds ri = rev[i]
+    @inbounds fi = fwd[i] #! perhaps not needed if do every swap
+    @inbounds ri = rev[i] #! perhaps not needed if do every swap
     o = ordering(h)
     if lt(o, y, x)
         # Heap structure _above_ replaced entry will remain valid, down-heapify
@@ -483,19 +483,26 @@ and `1 ≤ i ≤ n`.
             lt(o, A[j], x) || break
             A[i] = A[j]
             # Update fwd and rev for the moved element
-            # fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
-            # rev[i], rev[j] = rev[j], rev[i]# swap rev
-            println("fwd[rev[j]] = i: $(fwd[rev[j]]) ← $i")
-            println("fwd[rev[i]] = $(fwd[rev[i]])")
-            println("rev[i] = $(rev[i])")
-            println("rev[j] = $(rev[j])")
-            fwd[rev[j]] = i
-            rev[i] = rev[j]
+            println("DOWN")
+            println("ri = $ri")
+            println("fi = $fi")
+            println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
+            println("(rev[i], rev[j]) = $((rev[i], rev[j]))\n")
+            #* add an `if` for updating fwd or rev
+            fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
+            rev[i], rev[j] = rev[j], rev[i]# swap rev
+            # fwd[rev[j]] = i
+            # rev[i] = rev[j]
             i = j
         end
         A[i] = x
-        fwd[fi] = i
-        rev[i] = ri
+        println("..final..")
+        println("fwd[fi] = i: $(fwd[fi]) ← $i")
+        println("rev[i] = ri: $(rev[i]) ← $ri")
+        # fwd[fi] = i
+        # rev[i] = ri
+        println("fwd[fi]: $(fwd[fi])")
+        println("rev[i]: $(rev[i])\n")
     end
 end
 
@@ -540,15 +547,25 @@ linear indexing and `1 ≤ i ≤ length(A)`.
         while (j = heap_parent(i)) ≥ 1 && lt(o, x, A[j])
             A[i] = A[j]
             # Update fwd and rev for the moved element
-            # fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
-            # rev[i], rev[j] = rev[j], rev[i]# swap rev
-            fwd[rev[j]] = i
-            rev[i] = rev[j]
+            println("UP")
+            println("ri = $ri")
+            println("fi = $fi")
+            println("(fwd[rev[i]], fwd[rev[j]]) = $((fwd[rev[i]], fwd[rev[j]]))")
+            println("(rev[i], rev[j]) = $((rev[i], rev[j]))")
+            fwd[rev[i]], fwd[rev[j]] = fwd[rev[j]], fwd[rev[i]]# swap fwd
+            rev[i], rev[j] = rev[j], rev[i]# swap rev
+            # fwd[rev[j]] = i
+            # rev[i] = rev[j]
             i = j
         end
         A[i] = x
-        fwd[fi] = i
-        rev[i] = ri
+        println("..final..")
+        # println("fwd[fi] = i: $(fwd[fi]) ← $i")
+        # println("rev[i] = ri: $(rev[i]) ← $ri")
+        # # fwd[fi] = i
+        # # rev[i] = ri
+        # println("fwd[fi]: $(fwd[fi])")
+        # println("rev[i]: $(rev[i])")
     end
 end
 
