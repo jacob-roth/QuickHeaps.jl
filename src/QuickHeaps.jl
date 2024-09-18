@@ -29,10 +29,16 @@ export
     FastMin, FastMax, SafeMin, SafeMax,
     AbstractBinaryHeap, BinaryHeap, FastBinaryHeap,
     AbstractBinaryBimapHeap, BinaryBimapHeap, FastBinaryBimapHeap,
+    # timing comparision / todos
+    #   -- delete vs setroot
+    #   -- order of setroot and h[..]=..
+    #   -- reduce number of swaps / accesses in bubble-down/bubble-up
+    #   -- optimize cpu line instructions in bubble-down/bubble-up
     AbstractPriorityQueue, PriorityQueue, FastPriorityQueue,
     heapify, heapify!, isheap,
     setroot!,
     dequeue_node!,
+    find_root!, find_root_splitting!, find_root_halving!,
 
     # From Base (in recent versions of Julia):
     peek,

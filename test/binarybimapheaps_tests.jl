@@ -13,6 +13,7 @@ using QuickHeaps:
     ordering, storage
 
 using QuickHeaps
+using Random
 # v = [1.1,1.5,1.3,1.6,1.0,0.5,1.9,1.8,1.2,2.1]
 v = [1.1,1.5,1.3,1.6,1.9]
 n = length(v)
@@ -33,8 +34,7 @@ for i in eachindex(v0)
   @assert(h.data[i] == v0[h.rev[i]])
 end
 
-begin "n=20 test"
-using Random, QuickHeaps, Test
+@testset "n=20 test" begin
 Random.seed!(123456)
 # n = 10_000_000
 n = 20
@@ -47,7 +47,7 @@ fwd0 = copy(fwd)
 rev0 = copy(rev)
 h = QuickHeaps.FastBinaryBimapHeap(FastReverse, v, fwd, rev, n)
 @time heapify!(h);
-hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v0], h.rev, [findfirst(x .== v0) for x in h.data])
+# hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v0], h.rev, [findfirst(x .== v0) for x in h.data])
 for i in eachindex(v0)
   if !(v0[i] == h.data[h.fwd[i]]) || !(h.data[i] == v0[h.rev[i]])
     println(i)
@@ -70,10 +70,39 @@ end
     # println("i=$i")
     h[h.fwd[i]] = val[ii]
 end
+# leafnodes = Int(floor(h.count/2)+1):h.count
+# @time (delete!(h, 1))# 0.01s for 10m array
+# @time (setroot!(h, -Inf); h.count -= 1)# 0.01s for 10m array
+# @time (for i in 1:10; (setroot!(h, -Inf); h.count -= 1); end)
 check = hcat(h.data, h.fwd, [findfirst(x .== h.data) for x in v1], h.rev, [findfirst(x .== v1) for x in h.data])
 @test prod(check[:,2].==check[:,3])
 @test prod(check[:,4].==check[:,5])
 end # n=20
+
+#=
+# compare parallel vs sequential
+import Base.Threads
+ri_ref = Ref{Int}(0)
+rj_ref = Ref{Int}(0)
+ri = 0
+rj = 0
+rev = rand(1:1000,1000)
+i = 10
+j = 990
+@time begin
+    # ri_task = Threads.@spawn ri_ref[] = rev[i];
+    # rj_task = Threads.@spawn rj_ref[] = rev[j];
+    ri_task = Threads.@spawn ri = rev[i];
+    rj_task = Threads.@spawn rj = rev[j];
+    # Wait for both tasks to complete
+    wait(ri_task)
+    wait(rj_task)
+end
+@time begin
+    ri = rev[i]
+    rj = rev[j]
+end
+=#
 
 #=
 h1 = QuickHeaps.FastBinaryBimapHeap(FastReverse, copy(v1), collect(1:n), collect(1:n), n)
